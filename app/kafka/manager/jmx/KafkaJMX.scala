@@ -23,7 +23,7 @@ import scala.util.matching.Regex
 import scala.util.{Failure, Try}
 
 object KafkaJMX extends Logging {
-  
+
   private[this] val defaultJmxConnectorProperties = Map[String, Any] (
     "jmx.remote.x.request.waiting.timeout" -> "3000",
     "jmx.remote.x.notification.fetch.timeout" -> "3000",
@@ -33,7 +33,7 @@ object KafkaJMX extends Logging {
   )
 
   def doWithConnection[T](jmxHost: String, jmxPort: Int, jmxUser: Option[String], jmxPass: Option[String], jmxSsl: Boolean)(fn: MBeanServerConnection => T) : Try[T] = {
-    val urlString = s"service:jmx:rmi:///jndi/rmi://$jmxHost:$jmxPort/jmxrmi"
+    val urlString = s"service:jmx:rmi:///jndi/rmi://$jmxHost:11001/jmxrmi"
     val url = new JMXServiceURL(urlString)
     try {
       require(jmxPort > 0, "No jmx port but jmx polling enabled!")
@@ -99,7 +99,7 @@ object KafkaMetrics {
   private def getBrokerTopicMeterMetrics(kafkaVersion: KafkaVersion, mbsc: MBeanServerConnection, metricName: String, topicOption: Option[String]) = {
     getMeterMetric(mbsc, getObjectName(kafkaVersion, metricName, topicOption))
   }
-  
+
   private def getSep(kafkaVersion: KafkaVersion) : String = {
     kafkaVersion match {
       case Kafka_0_8_1_1 => "\""
@@ -110,7 +110,7 @@ object KafkaMetrics {
   def getObjectName(kafkaVersion: KafkaVersion, name: String, topicOption: Option[String] = None) = {
     val sep = getSep(kafkaVersion)
     val topicAndName = kafkaVersion match {
-      case Kafka_0_8_1_1 => 
+      case Kafka_0_8_1_1 =>
         topicOption.map( topic => s"${sep}$topic-$name${sep}").getOrElse(s"${sep}AllTopics$name${sep}")
       case _ =>
         val topicProp = topicOption.map(topic => s",topic=$topic").getOrElse("")
@@ -127,11 +127,11 @@ object KafkaMetrics {
   /* Gauge, Value : 0 */
   private val replicaFetcherManagerMaxLag = new ObjectName(
     "kafka.server:type=ReplicaFetcherManager,name=MaxLag,clientId=Replica")
-  
+
   /* Gauge, Value : 0 */
   private val kafkaControllerActiveControllerCount = new ObjectName(
     "kafka.controller:type=KafkaController,name=ActiveControllerCount")
-  
+
   /* Gauge, Value : 0 */
   private val kafkaControllerOfflinePartitionsCount = new ObjectName(
     "kafka.controller:type=KafkaController,name=OfflinePartitionsCount")
@@ -172,7 +172,7 @@ object KafkaMetrics {
       case _: InstanceNotFoundException => OSMetric(0D, 0D)
     }
   }
-  
+
   private def getMeterMetric(mbsc: MBeanServerConnection, name: ObjectName) = {
     import scala.collection.JavaConverters._
     try {
@@ -187,7 +187,7 @@ object KafkaMetrics {
         case _: InstanceNotFoundException => MeterMetric(0,0,0,0,0)
       }
   }
-  
+
   private def getLongValue(attributes: Seq[Attribute], name: String) = {
     attributes.find(_.getName == name).map(_.getValue.asInstanceOf[Long]).getOrElse(0L)
   }
@@ -355,10 +355,10 @@ case class MeterMetric(count: Long,
 
   def +(o: MeterMetric) : MeterMetric = {
     MeterMetric(
-      o.count + count, 
-      o.fifteenMinuteRate + fifteenMinuteRate, 
-      o.fiveMinuteRate + fiveMinuteRate, 
-      o.oneMinuteRate + oneMinuteRate, 
+      o.count + count,
+      o.fifteenMinuteRate + fifteenMinuteRate,
+      o.fiveMinuteRate + fiveMinuteRate,
+      o.oneMinuteRate + oneMinuteRate,
       o.meanRate + meanRate)
   }
 }
